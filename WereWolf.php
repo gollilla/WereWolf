@@ -10,6 +10,8 @@ use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\Listener;
+use pocketmine\command\Command;
+use pocketmine\command\CommandSender;
 //use werewolf\tasks\GamePlayingTask;
 
 
@@ -21,7 +23,7 @@ use pocketmine\event\Listener;
        public function onEnable(){
 
 
-                 $this->getServer()->registerEvent($this, $this); //register event
+                 $this->getServer()->getPluginManager()->registerEvents($this, $this); //register event
 
                  if(!file_exists($this->getDataFolder())){
 
@@ -34,7 +36,7 @@ use pocketmine\event\Listener;
                        'BlockId' => '0:0'
                       ));
 
-                 $this->mess = new Config($this->getDataFolder() ."message.yml", Config:YAML,
+                 $this->mess = new Config($this->getDataFolder() ."message.yml", Config::YAML,
                  array(
                        'ajoin' => 'あなたは既にゲームに参加しています',
                        'astart' => 'ゲーム中です。しばらくお待ちください',
@@ -42,7 +44,7 @@ use pocketmine\event\Listener;
                        'wwolf' => 'あなたの役職は人狼です',
                        'wvill' => 'あなたの役職は村人です',
                        'wteller' => 'あなたの役職は占い師です',
-                       'wknight' => 'あなたの役職は騎士です',
+                       'wknight' => 'あなたの役職は騎士です'));
                        
 
 
@@ -55,7 +57,7 @@ use pocketmine\event\Listener;
 
        public function onTouch(PlayerInteractEvent $ev){
 
-          if($ev->getBlock()->getId().":".$this->getBlock()->getDamage() == $this->con->get('BlockId')){
+          if($ev->getBlock()->getId().":".$ev->getBlock()->getDamage() == $this->con->get('BlockId')){
 
               if($this->status == 0){
 
@@ -63,12 +65,13 @@ use pocketmine\event\Listener;
                       $name = $player->getName();
                       $players = $this->players;
 
-                      if(in_array($name, $players)){
+                     /* if(in_array($name, $players)){
  
                               $player->sendMessage('§c'.$this->mess->get('ajoin'));
-                      }else{
+                      }else{*/
 
                               array_push($this->players, $name);
+                              $this->pcount++;
 
                               $player->sendMessage('§b'.$this->mess->get('jjoin'));
 
@@ -77,7 +80,7 @@ use pocketmine\event\Listener;
                                     $this->status = 1;
                                     $this->start();
                              }
-                      }
+                      //}
                }else{
                     $player->sendMessage('§c'.$this->mess->get('astart'));
               }
@@ -85,14 +88,14 @@ use pocketmine\event\Listener;
      }
 
 
-       public function start($players){
+       public function start(){
 
 
-                                    shuffle($players);
+                                    shuffle($this->players);
 
-                                    $this->pl = $players;
+                                  
 
-                                    foreach($players as $key => $value){
+                                    foreach($this->players as $key => $value){
 
                                            switch($key){
 
@@ -100,7 +103,7 @@ use pocketmine\event\Listener;
 
                                                                  $nplayer = $this->getServer()->getPlayer($value);
                                                                  $nplayer->sendMessage('§a'.$this->mess->get('wwolf'));
-                                                                 $nplayer->sendMessage('§a人狼はあなたと§6 '.$players[1].' §aです');
+                                                                 $nplayer->sendMessage('§a人狼はあなたと§6 '.$this->players[1].' §aです');
                                                                  $this->player[$value]['work'] = 'wolf';
                                                                  break;
 
@@ -115,7 +118,7 @@ use pocketmine\event\Listener;
 
                                                                  $nplayer = $this->getServer()->getPlayer($value);
                                                                  $nplayer->sendMessage('§a'.$this->mess->get('wwolf'));
-                                                                 $nplayer->sendMessage('§a人狼はあなたと§6 '.$players[3].' §aです');
+                                                                 $nplayer->sendMessage('§a人狼はあなたと§6 '.$this->players[3].' §aです');
                                                                  $this->player[$value]['work'] = 'wolf';
                                                                  break;
 
@@ -140,7 +143,7 @@ use pocketmine\event\Listener;
          
          public function pre(){
 
-                 foreach($this->pl as $pname){
+                 foreach($this->players as $pname){
 
                           $this->getServer()->getPlayer($pname)->sendMessage('§eGM§f > §bあなた方の中に人狼が紛れています。');
                           $this->getServer()->getPlayer($pname)->sendMessage('§eGM§f > §b村人は人狼を見つけ出し、処刑しなければいけません。');
@@ -171,6 +174,44 @@ use pocketmine\event\Listener;
                  }
          }
 
+
+         public function getWork($name){
+
+
+                  if(!empty($this->player[$name]['work'])){
+
+                          switch($this->player[$name]['work']){
+
+
+                                  case 'knight':
+
+                                                return '騎士';
+                                                break;
+                                  case 'teller':
+
+                                                return '占い師';
+                                                break;
+
+                                  case 'villager':
+ 
+                                                return '村人';
+                                                break;
+
+                                  case 'wolf':
+                                               return '人狼';
+                                               break;
+
+                           }
+                  }else{
+
+                           return false;
+                  }
+        }
+
+
+
+
+
          public function onCommand(CommandSender $sender, Command $cmd,$label, array $args){
 
 
@@ -184,18 +225,20 @@ use pocketmine\event\Listener;
 
                                             if(!empty($this->player[$name]['work'])){
 
+                                               if(!empty($this->player[$name]['command'])){
+
                                                    if($this->player[$name]['command'] == 1){
 
                                                           if($this->player[$name]['work'] == 'wolf'){
 
                                                                     if(isset($args[0])){
 
-                                                                          if(in_array($args[0], $this->pl){
+                                                                          if(in_array($args[0], $this->players)){
 
                                                                                      if(empty($this->kill)){
 
                                                                                              $this->kill = $args[0];
-                                                                                             $sender->sendMessage('§bターゲットは §6'$args[0]' §bになりました');
+                                                                                             $sender->sendMessage('§bターゲットは §6'.$args[0].' §bになりました');
                                                                                              $this->player[$name]['command'] = 0;
                                                                                      }else{
 
@@ -217,14 +260,63 @@ use pocketmine\event\Listener;
 
                                                        $sender->sendMessage('§e今は襲えません');
                                                  }
+                                               }else{
+                                                    $sender->sendMessage('§eあなたはこのコマンドを使うことはできません');
+                                               }
+                                                 
                                           }else{
 
                                                  $sender->sendMessage('§eあなたはこのコマンドを使うことはできません');
                                           }
                                        break;
 
+                                       case 'catch':
+
+                                                    if(!empty($this->player[$name]['work'])){
+ 
+                                                                 if(!empty($this->player[$name]['command'])){
+
+                                                                      if($this->player[$name]['command'] == 1){
+
+                                                                            if($this->player[$name]['work'] == 'wolf'){
+
+                                                                                   if(isset($args[0])){
+
+                                                                                            if(in_array($args[0], $this->players)){
+
+                                                                                                       $work = $this->getWork();
+                                                                                                       $sender->sendMessage('§b'.$args[0].' §aは §6'.$work.' §aです'); 
+                                                                                                       $this->player[$name]['command'] = 0;
+                                                                                            }else{
+
+                                                                                                       $sender->sendMessage('§e そのプレイヤーはいません');
+                                                                                            }
+                                                                                   }else{
+                                                                                      
+                                                                                            $sender->sendMessage('§b 占う相手を選択してください');
+                                                                                   }
+                                                                           }else{
+
+                                                                               $sender->sendMessage('§cあなたはこのコマンドは使えません');
+ 
+                                                                            }
+                                                                     }else{
+
+                                                                             $sender->sendMessage('§e今は占えません');
+                                                                     }
+                                                              }else{
+
+                                                                    $sender->sendMessage('§eあなたはこのコマンドは使えません');
+                                                              }
+                                                     }else{
+
+                                                          $sender->sendMessage('§あなたはこのコマンドは使えません');
+                                                     }
+                                                 break;
+
+                                                                                                               
                  
-                          }
+                          }                    //まだ途中w
       }
   }
 

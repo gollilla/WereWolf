@@ -489,7 +489,7 @@ use pocketmine\command\CommandSender;
 
                         ++$number;
 
-                        $this->checkSlot($inventory, $number);
+                        $this->checkSlot($inventory, $number, $item);
               }else{
 
                  $inventory->setHotbarSlotIndex($number, $item);
